@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009"
+					   xmlns:s="library://ns.adobe.com/flex/spark"
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   width="600" height="500" showStatusBar="false" creationComplete="windowedapplication1_creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.mebius.format.ftf.FTFManage;
+			
+			import mx.events.FlexEvent;
+			
+			private var sysFile:File;
+			private var sqlFile:File;
+			private var FilrUrlArr:Array;
+			private var key:int;//递归结束标志
+			private var ftf:FTFManage;
+			private var ftfByte:ByteArray;
+			protected function windowedapplication1_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			//---------------------------打包FTF---------------------------------------------------
+			
+			
+			protected function binPackage_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				sysFile = new File();
+				sysFile.addEventListener(Event.SELECT,selectHandler);
+				FilrUrlArr = new Array();
+				
+				sysFile.browseForDirectory("请选择您即将打包的文件夹");
+			}
+			private function selectHandler(event:Event):void{
+				getFileArr();
+			}
+			/**
+			 递归函数开始递归
+			 **/
+			private function getFileArr(_url:String=""):void{
+				key++;
+				if(_url!=""){
+					sysFile.url = _url;
+				}
+				var arr:Array = sysFile.getDirectoryListing();
+				var leg:int = arr.length;
+				for(var i:int=0;i<leg;i++){
+					var file:File = arr[i] as File;
+					if(file.isDirectory){
+						getFileArr(file.url);
+					}else{
+						FilrUrlArr.push(file.url);
+					}
+				}
+				key--;
+				if(key==0){//判断递归是否结束
+					Idone();
+				}
+			}
+			/**
+			 这里可以切一个断点看看结果，或者干脆用用trace
+			 **/
+			private function Idone():void{
+				//	FilrUrlArr;
+				//	trace(FilrUrlArr);
+				for( var i:int=0;i<FilrUrlArr.length;i++ )
+				{
+					var names:String = "";
+					var str:String = FilrUrlArr[i];
+					var arr:Array = str.split("/");
+					var s:String = arr[arr.length-1];
+					var ar:Array = s.split(".");
+					names = ar[0];
+					
+				}
+				this.addInfoText("此次打包的文件共包含文件数量： "+ FilrUrlArr.length );
+				this.ftf = new FTFManage();
+				
+				//开始打包文件
+				ftfByte = this.ftf.createFTF( FilrUrlArr );
+				this.addInfoText("FTF文件打包完成");
+				
+				sqlFile = new File();
+				sqlFile.addEventListener(Event.SELECT, wselectsqlFile);
+				sqlFile.browseForSave("请选择FTF文件存储路径");
+				
+			}
+			private function wselectsqlFile(evt:Event):void
+			{
+				this.sqlFile.url += ".ftf";
+				this.addInfoText("您FTF文件存储路径为： " + this.sqlFile.url );
+				
+				var file:File = new File(this.sqlFile.url);
+				var stream:FileStream = new FileStream();
+				stream.open( file, FileMode.WRITE );
+				stream.writeBytes( this.ftfByte );
+				
+				stream.close();
+				this.addInfoText("文件创建成功");
+			}
+			
+			//------------------------------------------------------------------------------
+			
+			private var ftfinfoFile:File;
+			protected function previewFTF_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				this.ftfinfoFile = new File();
+				this.ftfinfoFile.addEventListener(Event.SELECT, ftfinfoselect);
+				this.ftfinfoFile.browseForOpen("请选择一个FTF文件",[new FileFilter("ftf文件","*.ftf","*.ftf")]);
+			}
+			private function ftfinfoselect(evt:Event):void
+			{
+				this.ftf = new FTFManage();
+				this.ftf.readFTF( this.ftfinfoFile.url );
+				
+				addInfoText("FTF文件路径为"+this.ftfinfoFile.url);
+				
+				var data:Array = this.ftf.getIDs();
+				var l:uint = data.length;
+				var str:String = "";
+				for( var i:int = 0; i<l; i++ )
+				{
+					str += "\nFTF中文件索引ID："+data[i]
+					
+				}
+				addInfoText(str);
+				addInfoText("索引数量为"+l);
+			}
+			//------------------------------------------------------------------------------
+			
+			protected function clearInfo_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				this.infoView.text = "";
+			}
+			
+			
+			private function addInfoText(val:String):void
+			{
+				this.infoView.text += val + "\n";
+				this.infoView.validateNow();
+				this.infoView.scroller.verticalScrollBar.value = this.infoView.scroller.verticalScrollBar.maximum;
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Button id="binPackage" x="10" y="10" label="打包FTF" click="binPackage_clickHandler(event)"/>
+	<s:Button id="previewFTF" x="10" y="40" label="浏览FTF" click="previewFTF_clickHandler(event)"/>
+	<s:TextArea id="infoView" right="10" top="10" bottom="10" width="514" editable="false"/>
+	<s:Button id="clearInfo" left="10" bottom="10" label="清除文本" click="clearInfo_clickHandler(event)"/>
+</s:WindowedApplication>
