@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <title>FTF Format by mebiusashan</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>FTF Format</h1>
+        <h2>FTF Format File</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/mebiusashan/ftf/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/mebiusashan/ftf/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/mebiusashan/ftf" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h1>
+<a name="ftf-format-file" class="anchor" href="#ftf-format-file"><span class="octicon octicon-link"></span></a>FTF Format File</h1>
+
+<h2>
+<a name="whats-the-ftf-format-file" class="anchor" href="#whats-the-ftf-format-file"><span class="octicon octicon-link"></span></a>What's the FTF format file?</h2>
+
+<p>FTF文件格式是一个简单的文件打包格式。它将不同格式的二进制文件首尾相接，形成一个统一的数据包。同时数据包中包含一个表，用来描述FTF文件中不同文件的ID和起始点下标。</p>
+
+<h2>
+<a name="ftf-format-file-data" class="anchor" href="#ftf-format-file-data"><span class="octicon octicon-link"></span></a>FTF Format File Data</h2>
+
+<p>（格式说明中所谓的“起始点”表示所需数据在当前FTF文件中的字节下标）</p>
+
+<h3>
+<a name="header%E9%83%A8%E5%88%86" class="anchor" href="#header%E9%83%A8%E5%88%86"><span class="octicon octicon-link"></span></a>Header部分</h3>
+
+<pre><code>数据头
+FTF          4字节 uint 0x465446 "FTF"的ASCII编码
+version      2字节 int     1      版本，当前为1
+
+索引数据段
+type         2字节 int     0      始终为0，表示当前数据为索引数据段
+index_pos    4字节 uint    22     索引数据起始编号，使用为22
+num block    4字节 uint    n      索引数据块个数，uint最大值为4294967295
+
+用户数据信息数据段
+type         2字节 uint    1      始终为1，表示当前数据为用户数据信息数据段
+index_pos    4字节 uint    n      用户数据信息数据段的起始点
+</code></pre>
+
+<h3>
+<a name="%E7%B4%A2%E5%BC%95%E6%95%B0%E6%8D%AE%E5%9D%97" class="anchor" href="#%E7%B4%A2%E5%BC%95%E6%95%B0%E6%8D%AE%E5%9D%97"><span class="octicon octicon-link"></span></a>索引数据块</h3>
+
+<pre><code>IDLength     2字节 int     n      该长度表示下方ID（UTF-8）字符串的长度
+ID           n字节 str UTF-8格式   对应文件的ID，ID可以为自定义名称，通常使用打包文件的文件名
+index        4字节 uint    n      对应数据再数据段的相对起始位置（何为相对起始位置，该起始位置所对应的起始点并非FTF文件的第1个字节，而是通过用户数据信息数据段中的index_pos值计算得来）
+length       4字节 uint    n      对应数据的字节长度（该长度取自于打包文件的对应文件实际体积）
+type         2字节 int     n      数据类型，该数据段在版本1中尚未使用，留作后期扩展
+</code></pre>
+
+<h3>
+<a name="%E7%94%A8%E6%88%B7%E6%95%B0%E6%8D%AE%E6%AE%B5" class="anchor" href="#%E7%94%A8%E6%88%B7%E6%95%B0%E6%8D%AE%E6%AE%B5"><span class="octicon octicon-link"></span></a>用户数据段</h3>
+
+<pre><code>data 实际打包文件二进制首尾相接
+</code></pre>
+
+<h2>
+<a name="%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8%E5%BA%93" class="anchor" href="#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8%E5%BA%93"><span class="octicon octicon-link"></span></a>如何使用库</h2>
+
+<h3>
+<a name="as3%E7%89%88%E6%9C%AC" class="anchor" href="#as3%E7%89%88%E6%9C%AC"><span class="octicon octicon-link"></span></a>AS3版本</h3>
+
+<p>首先引入需要的类</p>
+
+<div class="highlight"><pre>    <span class="k">import</span> <span class="nn">com.mebius.format.ftf.FTFManage</span><span class="o">;</span>
+    <span class="k">import</span> <span class="nn">com.mebius.format.ftf.FTFErrorEvent</span><span class="o">;</span>
+</pre></div>
+
+<p>创建一个FTFManage对象，同时进行初始化</p>
+
+<div class="highlight"><pre>    <span class="kd">private</span> <span class="kd">var</span> <span class="n">_ftf</span><span class="p">:</span><span class="kt">FTFManage</span><span class="o">;</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">_ftf</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">FTFManage</span><span class="o">();</span>
+
+    <span class="k">this</span><span class="o">.</span><span class="na">_ftf</span><span class="o">.</span><span class="na">addEventListener</span><span class="o">(</span> <span class="n">FTFErrorEvent</span><span class="o">.</span><span class="na">SYSTEM_IO_ERROR</span><span class="o">,</span> <span class="n">ftfError1_event</span><span class="o">);</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">_ftf</span><span class="o">.</span><span class="na">addEventListener</span><span class="o">(</span> <span class="n">FTFErrorEvent</span><span class="o">.</span><span class="na">FILE_NOT_FOUND</span><span class="o">,</span> <span class="n">ftfError2_event</span><span class="o">);</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">_ftf</span><span class="o">.</span><span class="na">addEventListener</span><span class="o">(</span> <span class="n">FTFErrorEvent</span><span class="o">.</span><span class="na">FILE_TYPE_ERROR</span><span class="o">,</span> <span class="n">ftfError3_event</span><span class="o">);</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">_ftf</span><span class="o">.</span><span class="na">addEventListener</span><span class="o">(</span> <span class="n">FTFErrorEvent</span><span class="o">.</span><span class="na">VERSION_UNRECOGNIZED_ERROR</span><span class="o">,</span> <span class="n">ftfError4_event</span><span class="o">);</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">_ftf</span><span class="o">.</span><span class="na">addEventListener</span><span class="o">(</span> <span class="n">FTFErrorEvent</span><span class="o">.</span><span class="na">FILE_CORRUPTION_ERROR</span><span class="o">,</span> <span class="n">ftfError5_event</span><span class="o">);</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">_ftf</span><span class="o">.</span><span class="na">addEventListener</span><span class="o">(</span> <span class="n">FTFErrorEvent</span><span class="o">.</span><span class="na">DATA_NOT_EXIST_ERROR</span><span class="o">,</span> <span class="n">ftfError6_event</span><span class="o">);</span>
+</pre></div>
+
+<p>读取指定的FTF文件</p>
+
+<div class="highlight"><pre>    <span class="k">this</span><span class="o">.</span><span class="na">_ftf</span><span class="o">.</span><span class="na">readFTF</span><span class="o">(</span> <span class="n">File</span><span class="o">.</span><span class="na">applicationDirectory</span><span class="o">.</span><span class="na">nativePath</span><span class="o">+</span><span class="s2">"/myFTF_file.ftf"</span> <span class="o">);</span>
+</pre></div>
+
+<p>通过ID获取对应文件的二进制数据,函数会返回一个ByteArray对象</p>
+
+<div class="highlight"><pre>    <span class="k">this</span><span class="o">.</span><span class="na">_ftf</span><span class="o">.</span><span class="na">getByteByID</span><span class="o">(</span><span class="n">filename</span><span class="o">);</span>
+</pre></div>
+
+<p>获取当前文件中的所有ID,此函数会返回一个Array对象</p>
+
+<div class="highlight"><pre>    <span class="k">this</span><span class="o">.</span><span class="na">_ftf</span><span class="o">.</span><span class="na">getIDs</span><span class="o">();</span>
+</pre></div>
+      </section>
+    </div>
+
+    
+  </body>
+</html>
